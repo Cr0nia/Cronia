@@ -1,0 +1,40 @@
+{
+  "name": "cronia-backend",
+  "version": "1.0.0",
+  "description": "Cronia - Plataforma de crédito colateralizado baseada em tokens Solana",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "api:dev": "npm run dev --workspace=apps/api",
+    "keeper:dev": "npm run dev --workspace=apps/keeper",
+    "indexer:dev": "npm run dev --workspace=apps/indexer",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "dev:all": "concurrently \"npm run api:dev\" \"npm run keeper:dev\" \"npm run indexer:dev\"",
+    "format": "prettier --write \"apps/**/*.ts\"",
+    "lint": "eslint \"apps/**/*.ts\"",
+    "test": "jest",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.1.0",
+    "prisma": "^5.7.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0"
+  }
+}
