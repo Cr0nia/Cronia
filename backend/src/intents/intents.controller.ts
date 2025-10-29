@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards, Get } from '@nestjs/common';
 import { IntentsService } from './intents.service';
 import { CreateIntentDto, ConfirmIntentDto } from './dto';
 import { MerchantApiGuard } from '../common/guards/merchant-api.guard';
@@ -8,19 +8,30 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 export class IntentsController {
   constructor(private service: IntentsService) {}
 
-  // Merchant cria o QR (passa merchantId na rota)
   @UseGuards(MerchantApiGuard)
   @Post('merchants/:merchantId/qrs')
-  async createQr(@Param('merchantId') merchantId: string, @Body() dto: Omit<CreateIntentDto, 'merchantId'>, @Req() req: any) {
+  async createQr(@Param('merchantId') merchantId: string, @Body() dto: any, @Req() req: any) {
     if (req.merchant?.id && req.merchant.id !== merchantId) {
+
     }
-    const res = await this.service.createByMerchant(merchantId, dto);
-    return res;
+    return this.service.createByMerchant(merchantId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('intents/:id')
+  async get(@Param('id') id: string) {
+    return this.service.get(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('intents/:id/confirm')
-  async confirm(@Param('id') id: string, @Body() dto: Omit<ConfirmIntentDto, 'intentId'>, @Req() req: any) {
+  async confirm(@Param('id') id: string, @Body() dto: any) {
     return this.service.confirmIntent(id, dto.ownerPubkey, dto.orderIdExt);
+  }
+
+  @UseGuards(MerchantApiGuard)
+  @Post('merchants/:merchantId/intents/:id/cancel')
+  async cancel(@Param('merchantId') merchantId: string, @Param('id') id: string, @Req() req: any) {
+    return this.service.cancelByMerchant(id, merchantId);
   }
 }

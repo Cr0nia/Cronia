@@ -33,4 +33,15 @@ export class MerchantsService {
     const { apiKeyHash, ...safe } = m as any;
     return safe;
   }
+
+  async rotateKey(merchantId: string) {
+    const m = await this.prisma.merchant.findUnique({ where: { id: merchantId } });
+    if (!m) throw new NotFoundException('Merchant not found');
+    const { apiKey, apiKeyHash } = makeMerchantApiKey();
+    await this.prisma.merchant.update({
+      where: { id: merchantId },
+      data: { apiKeyHash },
+    });
+    return { merchantId, apiKey };
+  }
 }

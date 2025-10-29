@@ -35,12 +35,12 @@ export class IntentsService {
     const intent = await this.prisma.paymentIntent.create({
       data: {
         merchantId,
-        amountUsdc: data.amountUsdc,
         currency: data.currency,
         description: data.description,
         maxInstallments: maxInst,
         status: 'created',
         expiresAt,
+        amountUsdc: Number(data.amountUsdc ?? data.amountUsdc ?? 0)
       },
     });
 
@@ -64,4 +64,25 @@ export class IntentsService {
     });
     return { intentId: updated.id, status: updated.status, ownerPubkey: updated.ownerPubkey };
   }
+
+  async get(intentId: string) {
+    const intent = await this.prisma.paymentIntent.findUnique({ where: { id: intentId } });
+    if (!intent) throw new NotFoundException('Intent not found');
+    return intent;
+  }
+
+  async cancelByMerchant(intentId: string, merchantId: string) {
+    const intent = await this.prisma.paymentIntent.findUnique({ where: { id: intentId } });
+    if (!intent) throw new NotFoundException('Intent not found');
+    if (intent.merchantId !== merchantId) throw new ForbiddenException('Not your intent');
+    if (!['created', 'confirmed'].includes(intent.status)) {
+      throw new ForbiddenException('Only created/confirmed intents can be cancelled');
+    }
+    const updated = await this.prisma.paymentIntent.update({
+      where: { id: intentId },
+      data: { status: 'cancelled' },
+    });
+    return { intentId: updated.id, status: updated.status };
+  }
+
 }

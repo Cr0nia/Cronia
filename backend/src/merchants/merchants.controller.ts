@@ -18,4 +18,11 @@ export class MerchantsController {
   async get(@Param('id') id: string) {
     return this.service.get(id);
   }
+
+  @UseGuards(AdminApiGuard)
+  @Post(':id/rotate-key')
+  async rotate(@Param('id') id: string) {
+    return this.service.rotateKey(id);
+  }
+
 }
