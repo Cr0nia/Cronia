@@ -8,10 +8,11 @@ import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
 import { MerchantsModule } from './merchants/merchants.module';
 import { IntentsModule } from './intents/intents.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [ ConfigModule.forRoot({ isGlobal: true }),
-DatabaseModule, SolanaModule, AccountsModule, AuthModule, MerchantsModule, IntentsModule],
+DatabaseModule, SolanaModule, AccountsModule, AuthModule, MerchantsModule, IntentsModule, UsersModule],
   controllers: [AppController],
   providers: [AppService],
 })
