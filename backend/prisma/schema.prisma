@@ -92,7 +92,7 @@ model Merchant {
   phone           String?
   cnpj            String?
   category        String?
-  apiKeyHash      String?
+  apiKeyHash      String?  @unique  
   callbackUrl     String?
   takeRateBps     Int      @default(180)
   maxInstallments Int      @default(12)
@@ -100,7 +100,34 @@ model Merchant {
   verified        Boolean  @default(false)
   createdAt       DateTime @default(now())
   sales           Sale[]
+  wallets         MerchantWallet[]
+  paymentIntents  PaymentIntent[]
 }
+
+model MerchantWallet {
+  id          String   @id @default(uuid())
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  merchantId  String
+  pubkey      String   @unique
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model PaymentIntent {
+  id              String   @id @default(cuid())
+  merchant        Merchant @relation(fields: [merchantId], references: [id])
+  merchantId      String
+  amountUsdc      Float
+  currency        String
+  description     String?
+  maxInstallments Int       @default(12)
+  status          String    @default("created")
+  ownerPubkey     String?
+  orderIdExt      String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+}
+
 
 model Sale {
   id           String    @id @default(uuid())
