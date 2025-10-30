@@ -11,10 +11,24 @@ import { IntentsModule } from './intents/intents.module';
 import { UsersModule } from './users/users.module';
 import { CreditModule } from './credit/credit.module';
 import { CollateralModule } from './collateral/collateral.module';
+import { ReceivablesModule } from './receivables/receivables.module';
+import { StatementsModule } from './statements/statements.module';
 
 @Module({
-  imports: [ ConfigModule.forRoot({ isGlobal: true }),
-DatabaseModule, SolanaModule, AccountsModule, AuthModule, MerchantsModule, IntentsModule, UsersModule, CreditModule, CollateralModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
+    SolanaModule,
+    AccountsModule,
+    AuthModule,
+    MerchantsModule,
+    IntentsModule,
+    UsersModule,
+    CreditModule,
+    CollateralModule,
+    ReceivablesModule,
+    StatementsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
