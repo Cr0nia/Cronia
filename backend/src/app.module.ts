@@ -9,10 +9,12 @@ import { AuthModule } from './auth/auth.module';
 import { MerchantsModule } from './merchants/merchants.module';
 import { IntentsModule } from './intents/intents.module';
 import { UsersModule } from './users/users.module';
+import { CreditModule } from './credit/credit.module';
+import { CollateralModule } from './collateral/collateral.module';
 
 @Module({
   imports: [ ConfigModule.forRoot({ isGlobal: true }),
-DatabaseModule, SolanaModule, AccountsModule, AuthModule, MerchantsModule, IntentsModule, UsersModule],
+DatabaseModule, SolanaModule, AccountsModule, AuthModule, MerchantsModule, IntentsModule, UsersModule, CreditModule, CollateralModule],
   controllers: [AppController],
   providers: [AppService],
 })
