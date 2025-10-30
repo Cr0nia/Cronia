@@ -13,6 +13,7 @@ import { CreditModule } from './credit/credit.module';
 import { CollateralModule } from './collateral/collateral.module';
 import { ReceivablesModule } from './receivables/receivables.module';
 import { StatementsModule } from './statements/statements.module';
+import { PoolModule } from './pool/pool.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StatementsModule } from './statements/statements.module';
     CollateralModule,
     ReceivablesModule,
     StatementsModule,
+    PoolModule,
   ],
   controllers: [AppController],
   providers: [AppService],

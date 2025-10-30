@@ -154,6 +154,7 @@ model ReceivableNote {
   createdAt   DateTime @default(now())
   sale        Sale?    @relation(fields: [saleId], references: [id])
   saleId      String?
+  advances    PoolAdvance[]
 }
 
 model Statement {
@@ -178,11 +179,14 @@ model StatementItem {
 model PoolAdvance {
   id          String   @id @default(uuid())
   notePda     String
-  grossUsdc   Float
-  discountUsdc Float
-  netUsdc     Float
-  tx          String?
+  poolPda     String
+  grossUsdc   Float?
+  discountUsdc Float?
+  netUsdc     Float?
+  txSignature String?
+  status      String   @default("pending")
   createdAt   DateTime @default(now())
+  note        ReceivableNote? @relation(fields: [notePda], references: [notePda])
 }
 
 model Score {
