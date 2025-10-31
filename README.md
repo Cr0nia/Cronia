@@ -582,12 +582,6 @@ This structure ensures **long-term sustainability**, **deflationary pressure on 
 
 ---
 
-Excellent 👏 — those three sections already provide strong strategic clarity, but let’s transform them into **a truly investor-level narrative**, with expanded insights, strategic connections between blocks, and key metrics that make Cronia’s positioning and go-to-market story *irresistible* to both business and technical evaluators.
-
-Here’s your **enhanced, detailed version** of Sections 9–11, ready to replace them in your documentation 👇
-
----
-
 ## 9. Value Proposition Canvas
 
 Cronia’s Value Proposition Canvas highlights how its ecosystem directly addresses the core pains of each participant in the credit value chain — **users, merchants, and liquidity providers** — while leveraging Solana’s infrastructure for speed, cost-efficiency, and composability.
@@ -838,3 +832,164 @@ Cronia’s roadmap balances **technical milestones** with **market adoption goal
 > Powered by Solana’s efficiency, it delivers **real, sustainable Web3 credit** — empowering users, merchants, and investors through transparency, automation, and global scalability.
 >
 > **Cronia is not just a protocol — it’s the future credit layer of Web3.**
+
+---
+
+# Cronia Technical Whitepaper
+
+## Project Scope
+
+Cronia is a collateralized credit protocol that turns self-custodied Solana assets into revolving credit limits and installment payments. It unifies mobile onboarding,
+
+REST APIs, smart contracts, and analytics into a cohesive architecture serving three actors: consumers, merchants, and liquidity providers.
+
+---
+
+## System Architecture
+
+- Client: Expo/React Native super-app with Expo Router, React Query, and a wallet-aware auth context (frontend/context/AuthContext.tsx:18).
+- API Layer: NestJS monolith exposing /api/v1 endpoints, orchestrating on-chain calls and database writes (backend/src/app.module.ts:6).
+- Blockchain Integration: Anchor programs for credit lines, collateral vaults, receivables, and liquidity pool. Accessed with a shared Anchor provider configured by ProgramsService (backend/src/solana/programs.service.ts:13).
+- Persistence: PostgreSQL via Prisma with strong typing for credit accounts, receivables, statements, and audit logs (backend/prisma/schema.prisma:1).  
+- Automation: Cron jobs for intent expiration, statement closure, dunning, and health-factor monitoring recorded in JobsRuns (backend/src/jobs/jobs.service.ts:12).
+- Eventing: Helius webhooks and Anchor events stored as OnchainEvent to trigger downstream processes (backend/src/webhooks/webhooks.service.ts:18).
+
+---
+
+## Solana Integration
+
+- Anchor provider bootstrapped from ANCHOR_WALLET, PROGRAM_ID_CREDIT_LINE, and PROGRAM_ID_COLLATERAL_VAULT (backend/src/solana/programs.service.ts:26).
+- RPC connection uses commitment parameters for consistency (backend/src/solana/solana.service.ts:5).
+- Helper utilities derive PDAs, check ATAs, build unsigned transactions (backend/src/solana/transaction.helpers.ts:13) so the mobile client can sign locally.
+- All smart contracts emit events (ChargeAuthorized, NoteIssued, Advanced) enabling deterministic reconciliations.
+
+---
+
+## Smart Contracts (Anchor)
+
+- credit_line (blockchain/programs/credit_line/src/lib.rs:1)
+   - Manages CreditAccount PDAs seeded by [b"credit", owner].
+   - Enforces limit checks, health-factor thresholds, and billing status.
+   - Events: ChargeAuthorized, PaymentPosted, StatementClosed.
+   - Admin-configurable policies stored in Config PDA [b"credit_config"].
+- collateral_vault (blockchain/programs/collateral_vault/src/lib.rs:1)
+   - Defines vault configuration, per-mint vaults, positions, pump class/token metadata, and price feeds.
+   - Handles SPL token transfers with deterministic ATAs and signer seeds during deposits/withdrawals.
+- receivables (blockchain/programs/receivables/src/lib.rs:1)
+   - Issues installment notes as PDAs [b"note", order_id, index].
+   - Stores buyer, merchant, amount, due date, and status.
+- advance_pool (blockchain/programs/advance_pool/src/lib.rs:1)
+   - Governs liquidity pool PDAs [b"pool", admin].
+   - Records advances, guarantee settlements, and reserve replenishments.
+   - Uses stub struct to operate on receivable notes without cross-program CPI.
+
+---
+
+## Backend Modules
+
+- CreditService (backend/src/credit/credit.service.ts:34)
+   - Mirrors credit_line instructions and syncs Prisma CreditAccount.
+   - Provides unsigned transaction builders for client-side signing.
+- CollateralService (backend/src/collateral/collateral.service.ts:42)
+   - Initializes vaults, sets pump parameters, handles deposits/withdrawals.
+   - Ensures ATAs exist and stores collateral positions in Prisma.
+- ReceivablesService (backend/src/receivables/receivables.service.ts:34)
+   - Mints receivable notes, supports bulk issuance per charge, and reconciles on-chain/off-chain state.
+- PoolService (backend/src/pool/pool.service.ts:34)
+   - Drives advance_pool operations, logs pool activity to Prisma, and exposes history APIs.
+- OracleService (backend/src/oracle/oracle.service.ts:9)
+   - Maintains pump class/token metadata, price tables, and asset registry.
+- AccountsService (backend/src/accounts/accounts.service.ts:16)
+   - Creates user wallets, optionally aliasing admin key for testing, and encrypts secrets with AES-256-GCM.
+- Merchants & Intents (backend/src/merchants/merchants.service.ts:5, backend/src/intents/intents.service.ts:6)
+   - Issue API keys, manage sales pipelines, generate QR intents, and track status.
+- Statements & Jobs (backend/src/statements/statements.service.ts:14, backend/src/jobs/jobs.service.ts:12)
+   - Compose invoices from outstanding notes, emit statement close events, and automate dunning/health monitoring.
+- Reports (backend/src/reports/reports.service.ts:8)
+   - Export CSV summaries, compute metrics, and aggregate receivable/advance data.
+- Webhooks (backend/src/webhooks/webhooks.service.ts:18)
+  - Persist blockchain events, forward merchant callbacks, and support retries.
+- Admin & Audit (backend/src/admin/admin.service.ts:8, backend/src/admin/audit.service.ts:19)
+  - Manage risk policy, reindex events, log every sensitive change with actor context.
+
+---
+
+## Data Model Highlights
+
+- CreditAccount: Unique per owner pubkey with limits, used credit, score, billing day (backend/prisma/schema.prisma:28).
+- CollateralPosition: Tracks token mint, amount locked, valuation, LTV basis points (backend/prisma/schema.prisma:49).
+- ReceivableNote: Stores on-chain note PDAs, buyer, merchant, due date, and status (backend/prisma/schema.prisma:121).
+- PoolAdvance: Connects notes to pool actions, capturing gross/discount/net values (backend/prisma/schema.prisma:144).
+- Statement & StatementItem: Represent monthly invoices and line items (backend/prisma/schema.prisma:133).
+- AuditLog, OnchainEvent, JobsRuns provide observability and compliance.
+
+---
+
+## Mobile Application
+
+- Auth Context handles token storage, /auth/me hydration, and wallet discovery (frontend/context/AuthContext.tsx:18).
+- API Client with timeout, bearer injection, and query serialization (frontend/services/api.ts:8).
+- Backend Service Wrapper organizes endpoints by domain, including unsigned transaction flows (frontend/services/backend.ts:36).
+- Dashboard Screen aggregates credit, collateral, and statements using React Query for fresh state (frontend/app/(main)/dashboard.tsx:16).
+- UX Patterns: QR code payments, collateral locking flows, statement viewing, and health-factor visualization.
+
+---
+
+##  Key Workflows
+
+1. User Onboarding
+   - Auth signup creates user record, hashes password, and triggers wallet provisioning (backend/src/auth/auth.service.ts:15).
+   - Wallet secrets encrypted with WALLET_ENC_KEY_BASE64; optional airdrop for devnet.
+   - Automatic credit account opening and limit initialization.
+2. Collateral Locking
+   - Frontend requests unsigned deposit transaction.
+   - Backend ensures ATAs and constructs instructions; client signs and broadcasts.
+   - Position persisted with amount/valuation updates.
+3. Charge & Installments
+   - Merchant creates payment intent (QR).
+   - Consumer confirms; backend calls credit_line::charge.
+   - Off-chain listener mints receivables per installment.
+   - Statement generation aggregates dues and computes minimum payment.
+4. Liquidity Pool Advance
+   - Merchant requests advance; admin (or automated strategy) calls advance_pool::advance.
+   - Note beneficiary switched to pool PDA.
+   - Discounts, net proceeds, and signatures logged.
+5. Repayment & Dunning
+   - User pays via credit_line::repay.
+
+  - Health factor jobs escalate warnings or freeze accounts if thresholds breached (backend/src/jobs/jobs.service.ts:118).
+
+---
+
+## Security & Compliance Considerations
+
+- Key Management: Admin key (ANCHOR_WALLET) and user wallets stored server-side with AES-256-GCM; front-end never sees private keys unless non-custodial flows added.
+- Access Control: Merchant APIs authenticated via HMAC-style key hashed with SHA-256 (backend/src/common/api-key.util.ts:1, backend/src/common/guards/merchant-api.guard.ts:6).
+- Admin Guard: Simple API key for management endpoints (backend/src/common/guards/admin-api.guard.ts:4).
+- Audit Trail: Every privileged mutation recorded with actor, action, entity, and diff (backend/src/admin/audit.service.ts:19).
+- Job Logging: All cron executions stored with parameters and outcomes for observability (backend/src/jobs/jobs.service.ts:73).
+- Webhook Reliability: Merchant callbacks retried via stored payloads and manual retry endpoint (backend/src/webhooks/webhooks.service.ts:110).
+
+---
+
+## Deployment & Config
+
+- Requires environment variables:
+   - ANCHOR_WALLET, PROGRAM_ID_CREDIT_LINE, PROGRAM_ID_COLLATERAL_VAULT, RPC_URL, COMMITMENT.
+   - WALLET_ENC_KEY_BASE64, ADMIN_API_KEY, DATABASE_URL, DEVNET_AUTO_AIRDROP_SOL.
+- Docker scaffolding provided (backend/docker-compose.yml).
+- Anchor workspace anchored in blockchain/Anchor.toml with program IDs and IDL outputs.
+- IDLs consumed by backend reside in backend/idl/*.json generated post-build.
+
+---
+
+## Testing & Tooling
+
+- Shell scripts backend/test-credit-flow.sh and backend/test-credit-complete.sh orchestrate end-to-end flows (ensure RPC/devnet readiness).- Manual verification involves:
+   1. Running Anchor test validator or connecting to devnet.
+   2. Deploying programs and synchronizing PROGRAM_ID_*.
+   3. Seeding data with optional Prisma migrations in blockchain/migrations.
+
+---
+
+Cronia demonstrates how Solana’s throughput, deterministic PDAs, and Anchor’s ergonomics enable consumer-grade credit experiences, while NestJS and Prisma provide the operational backbone for compliance, analytics, and API interoperability.
