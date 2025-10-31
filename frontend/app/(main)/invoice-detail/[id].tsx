@@ -14,6 +14,7 @@ interface Installment {
 
 export default function InvoiceDetail() {
   const { id } = useLocalSearchParams();
+  const invoiceId = Array.isArray(id) ? id[0] : id;
 
   const installments: Installment[] = [
     { number: 1, value: 108.33, date: '15/10/2025', status: 'paid' },
@@ -37,7 +38,9 @@ export default function InvoiceDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft color="#6b7280" size={24} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalhes da Fatura</Text>
+          <Text style={styles.headerTitle}>
+            Detalhes da Fatura {invoiceId ? `#${invoiceId}` : ''}
+          </Text>
           <View style={{ width: 24 }} />
         </View>
 

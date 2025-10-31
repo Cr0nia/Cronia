@@ -1,8 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { MobileContainer } from '@/components/MobileContainer';
+import { useMemo } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, TrendingUp, AlertCircle, Smile, Award } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
+
+import { MobileContainer } from '@/components/MobileContainer';
+import { useAuth } from '@/context/AuthContext';
+import { UsersApi } from '@/services/backend';
 
 interface Factor {
   icon: React.ReactNode;
@@ -12,43 +17,63 @@ interface Factor {
 }
 
 export default function Score() {
-  const score = 810;
-  const scoreClass = 'Alto';
+  const { user, primaryWallet } = useAuth();
 
-  const factors: Factor[] = [
-    {
-      icon: <AlertCircle color="#ef4444" size={20} />,
-      label: 'Precisa de atenção',
-      items: ['Atualize sua renda mensal'],
-      color: 'destructive'
-    },
-    {
-      icon: <TrendingUp color="#f59e0b" size={20} />,
-      label: 'Pode melhorar',
-      items: ['Guarde R$ 15,00 ou mais em uma caixinha'],
-      color: 'warning'
-    },
-    {
+  const scoreQuery = useQuery({
+    queryKey: ['user-score', user?.id],
+    queryFn: () => UsersApi.getScore(user!.id),
+    enabled: Boolean(user?.id),
+    staleTime: 60_000,
+  });
+
+  const score = scoreQuery.data?.score ?? 0;
+  const scoreClass = getScoreClass(score);
+  const confirmedPurchases = scoreQuery.data?.confirmedPurchases ?? 0;
+  const hasWallet = Boolean(primaryWallet?.pubkey);
+
+  const factors: Factor[] = useMemo(() => {
+    const list: Factor[] = [];
+
+    if (!hasWallet) {
+      list.push({
+        icon: <AlertCircle color="#ef4444" size={20} />,
+        label: 'Precisa de atenção',
+        items: ['Crie sua carteira Cronia para liberar o crédito.'],
+        color: 'destructive',
+      });
+    }
+
+    if (confirmedPurchases === 0) {
+      list.push({
+        icon: <TrendingUp color="#f59e0b" size={20} />,
+        label: 'Pode melhorar',
+        items: ['Confirme sua primeira compra para ganhar 50 pontos extras.'],
+        color: 'warning',
+      });
+    } else {
+      list.push({
+        icon: <Award color="#10b981" size={20} />,
+        label: 'Ótimo',
+        items: [
+          `Você já confirmou ${confirmedPurchases} compra${confirmedPurchases > 1 ? 's' : ''}.`,
+          'Mantém comportamento de pagamento saudável.',
+        ],
+        color: 'success',
+      });
+    }
+
+    list.push({
       icon: <Smile color="#6366f1" size={20} />,
       label: 'Bom',
-      items: ['Continue usando seu cartão no crédito'],
-      color: 'primary'
-    },
-    {
-      icon: <Award color="#10b981" size={20} />,
-      label: 'Ótimo',
       items: [
-        'Você paga as faturas em dia',
-        'Você não atrasou nenhuma fatura nos últimos 6 meses',
-        'Você está usando bem seu limite',
-        'Você tem bom histórico de crédito',
-        'Suas garantias são de baixo risco',
-        'Você mantém um Health Factor saudável',
-        'Você diversifica seus ativos'
+        'Use seu crédito com responsabilidade para aumentar o score.',
+        'Mantenha o Health Factor acima de 1.2.',
       ],
-      color: 'success'
-    },
-  ];
+      color: 'primary',
+    });
+
+    return list;
+  }, [confirmedPurchases, hasWallet]);
 
   const getColorStyle = (color: string) => {
     switch(color) {
@@ -63,7 +88,7 @@ export default function Score() {
   // Cálculo para o círculo de progresso
   const radius = 88;
   const circumference = 2 * Math.PI * radius;
-  const progress = (score / 1000) * circumference;
+  const progress = Math.min(Math.max(score / 1000, 0), 1) * circumference;
 
   return (
     <MobileContainer>
@@ -82,14 +107,7 @@ export default function Score() {
           <View style={styles.scoreCard}>
             <View style={styles.scoreCircle}>
               <Svg width={192} height={192} style={{ transform: [{ rotate: '-90deg' }] }}>
-                <Circle
-                  cx={96}
-                  cy={96}
-                  r={radius}
-                  stroke="#e5e7eb"
-                  strokeWidth={12}
-                  fill="none"
-                />
+                <Circle cx={96} cy={96} r={radius} stroke="#e5e7eb" strokeWidth={12} fill="none" />
                 <Circle
                   cx={96}
                   cy={96}
@@ -102,7 +120,9 @@ export default function Score() {
                 />
               </Svg>
               <View style={styles.scoreValue}>
-                <Text style={styles.scoreNumber}>{score}</Text>
+                <Text style={styles.scoreNumber}>
+                  {scoreQuery.isLoading ? <ActivityIndicator /> : score}
+                </Text>
                 <Text style={styles.scoreMax}>de 1000</Text>
               </View>
             </View>
@@ -145,6 +165,13 @@ export default function Score() {
       </View>
     </MobileContainer>
   );
+}
+
+function getScoreClass(value: number) {
+  if (value >= 850) return 'Excelente';
+  if (value >= 700) return 'Alto';
+  if (value >= 550) return 'Moderado';
+  return 'Baixo';
 }
 
 const styles = StyleSheet.create({

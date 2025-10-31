@@ -1,10 +1,21 @@
+import { useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { MobileContainer } from '@/components/MobileContainer';
-import { Button } from '@/components/ui/button';
 import { router } from 'expo-router';
 import { Wallet, Shield, Zap } from 'lucide-react-native';
 
+import { MobileContainer } from '@/components/MobileContainer';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+
 export default function Onboarding() {
+  const { isAuthenticated, initializing } = useAuth();
+
+  useEffect(() => {
+    if (!initializing && isAuthenticated) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, initializing]);
+
   return (
     <MobileContainer>
       <View className="flex-1">
@@ -56,7 +67,7 @@ export default function Onboarding() {
           >
             <Text className="text-lg font-semibold text-white">Sou Lojista</Text>
           </Button>
-          <Button variant="ghost">
+          <Button variant="ghost" onPress={() => router.push('/(auth)/login')}>
             <Text className="text-lg text-gray-500">Já tenho conta</Text>
           </Button>
         </View>
