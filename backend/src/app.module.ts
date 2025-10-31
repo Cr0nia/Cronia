@@ -14,6 +14,8 @@ import { CollateralModule } from './collateral/collateral.module';
 import { ReceivablesModule } from './receivables/receivables.module';
 import { StatementsModule } from './statements/statements.module';
 import { PoolModule } from './pool/pool.module';
+import { OracleModule } from './oracle/oracle.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { PoolModule } from './pool/pool.module';
     ReceivablesModule,
     StatementsModule,
     PoolModule,
+    OracleModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

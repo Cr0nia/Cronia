@@ -24,10 +24,11 @@ export class CollateralController {
     return this.svc.withdraw(dto.ownerPubkey, dto.mint, dto.amount);
   }
 
-  @Post('oracle/pump/price')
-  setPrice(@Body() dto: SetPriceDto) {
-    return this.svc.setPrice(dto.mint, dto.priceUsdc6, dto.ts);
-  }
+  // Rota movida para OracleController para evitar conflito
+  // @Post('oracle/pump/price')
+  // setPrice(@Body() dto: SetPriceDto) {
+  //   return this.svc.setPrice(dto.mint, dto.priceUsdc6, dto.ts);
+  // }
 
   @Post('collateral/init/vault-config')
   initCfg() {
@@ -39,15 +40,16 @@ export class CollateralController {
     return this.svc.initVaultForMint(dto.mint);
   }
 
-  @Post('oracle/pump/class/init')
-  pumpClass() {
-    return this.svc.setPumpClassParams();
-  }
+  // Rotas movidas para OracleController para evitar conflito
+  // @Post('oracle/pump/class/init')
+  // pumpClass() {
+  //   return this.svc.setPumpClassParams();
+  // }
 
-  @Post('oracle/pump/token')
-  pumpToken(@Body() dto: { mint: string }) {
-    return this.svc.setPumpTokenParams(dto.mint);
-  }
+  // @Post('oracle/pump/token')
+  // pumpToken(@Body() dto: { mint: string }) {
+  //   return this.svc.setPumpTokenParams(dto.mint);
+  // }
 
   @Post('collateral/deposit/admin')
   depositAdmin(@Body() dto: { mint: string; amount: number }) {

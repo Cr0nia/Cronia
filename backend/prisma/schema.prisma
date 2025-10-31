@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") 
 }
 
 model User {
@@ -80,7 +80,7 @@ model Asset {
 
 model Price {
   id        String   @id @default(uuid())
-  mint      String
+  mint      String   @unique
   priceUsdc Float
   lastTs    DateTime @default(now())
 }
@@ -207,4 +207,39 @@ model OnchainEvent {
   sig         String
   payload     Json
   createdAt   DateTime @default(now())
+}
+
+model JobsRuns {
+  id          String   @id @default(uuid())
+  jobName     String
+  startedAt   DateTime
+  finishedAt  DateTime?
+  ok          Boolean  @default(false)
+  details     Json?
+
+  @@unique([jobName, startedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorType  String   // user, admin, system
+  actorId    String?
+  action     String   // create, update, delete, approve, reject, etc
+  entity     String   // User, Merchant, CreditAccount, etc
+  entityId   String
+  diffJson   Json?    // Mudanças realizadas
+  ts         DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorType, actorId])
+  @@index([ts])
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
