@@ -6,6 +6,7 @@ export default function AuthLayout() {
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="create-account" />
       <Stack.Screen name="merchant-onboarding" />
+      <Stack.Screen name="login" />
     </Stack>
   );
 }

@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 
 interface CheckboxProps {

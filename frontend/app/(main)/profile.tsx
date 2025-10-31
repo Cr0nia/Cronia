@@ -1,8 +1,15 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Bell, ChevronRight, HelpCircle, LogOut, Shield, User as UserIcon } from 'lucide-react-native';
+
 import { MobileContainer } from '@/components/MobileContainer';
 import { Button } from '@/components/ui/button';
-import { router } from 'expo-router';
-import { ArrowLeft, User, Shield, Bell, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import { useAuth } from '@/context/AuthContext';
+import { UsersApi } from '@/services/backend';
+import { toast } from '@/lib/toast';
+import { copyToClipboard } from '@/utils/clipboard';
 
 interface MenuItem {
   icon: React.ReactNode;
@@ -12,34 +19,62 @@ interface MenuItem {
 }
 
 export default function Profile() {
+  const { user, primaryWallet, logout, loading } = useAuth();
+
+  const scoreQuery = useQuery({
+    queryKey: ['user-score', user?.id],
+    queryFn: () => UsersApi.getScore(user!.id),
+    enabled: Boolean(user?.id),
+    staleTime: 60_000,
+  });
+
+  const kycBadge = useMemo(() => {
+    if (!user) return undefined;
+    if (user.status === 'approved' || user.kycLevel > 0) return 'KYC completo';
+    return 'KYC pendente';
+  }, [user]);
+
   const menuItems: MenuItem[] = [
     {
-      icon: <User color="#6b7280" size={20} />,
+      icon: <UserIcon color="#6b7280" size={20} />,
       label: 'Dados pessoais',
-      action: () => {}
+      action: () => toast.info('Edição de dados ainda não disponível.'),
     },
     {
       icon: <Shield color="#6b7280" size={20} />,
       label: 'Segurança',
-      badge: 'KYC Pendente',
-      action: () => {}
+      badge: kycBadge,
+      action: () => toast.info('Em breve você poderá completar seu KYC pelo app.'),
     },
     {
       icon: <Bell color="#6b7280" size={20} />,
       label: 'Notificações',
-      action: () => {}
+      action: () => toast.info('Central de notificações em desenvolvimento.'),
     },
     {
       icon: <HelpCircle color="#6b7280" size={20} />,
       label: 'Ajuda & Suporte',
-      action: () => {}
+      action: () => toast.info('Acesse suporte@cronia.io para falar com a equipe.'),
     },
   ];
+
+  const handleCopyWallet = async () => {
+    if (!primaryWallet?.pubkey) return;
+    const success = await copyToClipboard(primaryWallet.pubkey);
+    toast[success ? 'success' : 'info'](
+      success ? 'Endereço copiado!' : 'Copie manualmente (clipboard indisponível).',
+    );
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success('Sessão encerrada.');
+    router.replace('/(auth)/onboarding');
+  };
 
   return (
     <MobileContainer>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft color="#6b7280" size={24} />
@@ -49,22 +84,29 @@ export default function Profile() {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* User Info */}
           <View style={styles.userCard}>
             <View style={styles.avatar}>
-              <User color="#6366f1" size={40} />
+              <UserIcon color="#6366f1" size={40} />
             </View>
-            <Text style={styles.userName}>Gabriel Lima</Text>
-            <Text style={styles.userId}>5K7Wj...x8Qp</Text>
-            <Button
-              variant="outline"
-              onPress={() => router.push('/(main)/score')}
-            >
-              <Text style={styles.scoreButtonText}>Ver meu Score</Text>
+            <Text style={styles.userName}>{user?.name ?? 'Usuário Cronia'}</Text>
+            <Text style={styles.userEmail}>{user?.email ?? 'sem e-mail'}</Text>
+
+            <View style={styles.walletRow}>
+              <Text style={styles.walletLabel}>Wallet</Text>
+              <TouchableOpacity onPress={handleCopyWallet} disabled={!primaryWallet?.pubkey}>
+                <Text style={styles.walletValue}>
+                  {primaryWallet?.pubkey ?? 'Sem carteira gerada'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Button variant="outline" onPress={() => router.push('/(main)/score')}>
+              <Text style={styles.scoreButtonText}>
+                Ver meu Score ({scoreQuery.data?.score ?? '...'})
+              </Text>
             </Button>
           </View>
 
-          {/* Menu */}
           <View style={styles.menuList}>
             {menuItems.map((item, index) => (
               <TouchableOpacity
@@ -79,8 +121,20 @@ export default function Profile() {
                 </View>
                 <View style={styles.menuItemRight}>
                   {item.badge && (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{item.badge}</Text>
+                    <View
+                      style={[
+                        styles.badge,
+                        item.badge.includes('completo') && styles.badgeSuccess,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          item.badge.includes('completo') && styles.badgeTextSuccess,
+                        ]}
+                      >
+                        {item.badge}
+                      </Text>
                     </View>
                   )}
                   <ChevronRight color="#6b7280" size={20} />
@@ -89,13 +143,16 @@ export default function Profile() {
             ))}
           </View>
 
-          {/* Logout */}
-          <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.7}
+            onPress={handleLogout}
+            disabled={loading}
+          >
             <LogOut color="#ef4444" size={20} />
             <Text style={styles.logoutText}>Sair</Text>
           </TouchableOpacity>
 
-          {/* Version */}
           <View style={styles.versionContainer}>
             <Text style={styles.versionText}>Cronia v1.0.0</Text>
             <Text style={styles.versionText}>Powered by Solana</Text>
@@ -135,6 +192,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     marginBottom: 24,
+    gap: 12,
   },
   avatar: {
     width: 80,
@@ -143,19 +201,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef2ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
   userName: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
   },
-  userId: {
+  userEmail: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  walletRow: {
+    width: '100%',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+  },
+  walletLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  walletValue: {
     fontFamily: 'monospace',
-    marginBottom: 16,
+    fontSize: 13,
+    color: '#111827',
   },
   scoreButtonText: {
     fontSize: 16,
@@ -177,9 +249,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  menuIcon: {
-    // Container for icon
-  },
+  menuIcon: {},
   menuLabel: {
     fontSize: 16,
     fontWeight: '500',
@@ -196,33 +266,39 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  badgeSuccess: {
+    backgroundColor: '#dcfce7',
+  },
   badgeText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#f59e0b',
+    color: '#b45309',
+    fontWeight: '600',
+  },
+  badgeTextSuccess: {
+    color: '#047857',
   },
   logoutButton: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 12,
-    padding: 16,
+    marginTop: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
-    marginTop: 24,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#fee2e2',
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#ef4444',
+    color: '#b91c1c',
+    fontWeight: '600',
   },
   versionContainer: {
-    alignItems: 'center',
     marginTop: 24,
+    alignItems: 'center',
     gap: 4,
   },
   versionText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
 });

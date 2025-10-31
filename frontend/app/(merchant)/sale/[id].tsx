@@ -11,6 +11,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 const MerchantSaleDetail = () => {
   const { id } = useLocalSearchParams();
+  const saleId = Array.isArray(id) ? id[0] : id ?? '—';
 
   const installments = [
     {
@@ -44,7 +45,7 @@ const MerchantSaleDetail = () => {
           <Button variant="ghost" size="icon" onPress={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Text className="text-xl font-bold text-foreground">Detalhes da venda</Text>
+          <Text className="text-xl font-bold text-foreground">Venda #{saleId}</Text>
         </View>
 
         <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
