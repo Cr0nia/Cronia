@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/prisma.module';
@@ -16,10 +17,14 @@ import { StatementsModule } from './statements/statements.module';
 import { PoolModule } from './pool/pool.module';
 import { OracleModule } from './oracle/oracle.module';
 import { AdminModule } from './admin/admin.module';
+import { JobsModule } from './jobs/jobs.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     SolanaModule,
     AccountsModule,
@@ -34,6 +39,9 @@ import { AdminModule } from './admin/admin.module';
     PoolModule,
     OracleModule,
     AdminModule,
+    JobsModule,
+    WebhooksModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

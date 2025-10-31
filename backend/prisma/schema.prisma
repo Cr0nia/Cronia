@@ -243,3 +243,18 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
+
+model Webhook {
+  id        String   @id @default(uuid())
+  target    String   // merchant:id, helius, etc
+  url       String
+  payload   Json
+  status    String   // success, failed, pending
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
+
+  @@index([target])
+  @@index([status])
+  @@index([createdAt])
+}
